@@ -46,7 +46,35 @@ class Player(pygame.sprite.Sprite):
 
     def __init__(self, x, y, grass_tiles, water_tiles):
         super().__init__()
-        self.image = pygame.image.load("knight.png")
+
+        #Animation Frames
+        self.move_right_sprites = []
+        self.move_left_sprites = []
+        self.idle_right_sprites = []
+        self.idle_left_sprites = []
+
+        #Moving Right
+        self.move_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Run (1).png"), (64,64)))
+        self.move_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Run (2).png"), (64,64)))
+        self.move_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Run (3).png"), (64,64)))
+        self.move_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Run (4).png"), (64,64)))
+        self.move_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Run (5).png"), (64,64)))
+        self.move_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Run (6).png"), (64,64)))
+        self.move_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Run (7).png"), (64,64)))
+        self.move_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Run (8).png"), (64,64)))
+
+        #Idle Right
+        self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (1).png"), (64, 64)))
+        self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (2).png"), (64, 64)))
+        self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (3).png"), (64, 64)))
+        self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (4).png"), (64, 64)))
+        self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (5).png"), (64, 64)))
+        self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (6).png"), (64, 64)))
+        self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (7).png"), (64, 64)))
+        self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (8).png"), (64, 64)))
+
+        self.current_sprite = 0
+        self.image = self.move_right_sprites[self.current_sprite]
         self.rect = self.image.get_rect()
         self.rect.bottomleft = (x, y)
 
@@ -61,7 +89,7 @@ class Player(pygame.sprite.Sprite):
         self.acceleration = vector(0, 0)
 
         # Kinematic constants
-        self.HORIZONTAL_ACCELERATION = 2
+        self.HORIZONTAL_ACCELERATION = 1
         self.HORIZONTAL_FRICTION = 0.15
         self.VERTICAL_ACCELERATION = 0.5  # Gravity
         self.VERTICAL_JUMP_SPEED = 15  # Determines how high we can jump
@@ -79,8 +107,11 @@ class Player(pygame.sprite.Sprite):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
             self.acceleration.x = -1 * self.HORIZONTAL_ACCELERATION
-        if keys[pygame.K_RIGHT]:
+        elif keys[pygame.K_RIGHT]:
             self.acceleration.x = self.HORIZONTAL_ACCELERATION
+            self.animate(self.move_right_sprites, .2)
+        else:
+            self.animate(self.idle_right_sprites, .2)
 
         # Calculate new kinematics values
         self.acceleration.x -= self.velocity.x * self.HORIZONTAL_FRICTION
@@ -113,6 +144,13 @@ class Player(pygame.sprite.Sprite):
         if pygame.sprite.spritecollide(self, self.grass_tiles, False):
             self.velocity.y = -1 * self.VERTICAL_JUMP_SPEED
 
+    def animate(self, sprite_list, speed):
+        #Loop through the spritelist to animate the player
+        if self.current_sprite < len(sprite_list) - 1:
+            self.current_sprite += speed
+        else:
+            self.current_sprite = 0
+        self.image = sprite_list[int(self.current_sprite)]
 
 # Create sprite groups
 main_tile_group = pygame.sprite.Group()
