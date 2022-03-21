@@ -1,6 +1,6 @@
 import pygame
 
-#Use 2D vectors
+# Use 2D vectors
 vector = pygame.math.Vector2
 
 # Initialize pygame
@@ -40,6 +40,7 @@ class Tile(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
 
+
 class Player(pygame.sprite.Sprite):
     """A Player class the user can control"""
 
@@ -47,50 +48,71 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
         self.image = pygame.image.load("knight.png")
         self.rect = self.image.get_rect()
-        self.rect.bottomleft= (x,y)
+        self.rect.bottomleft = (x, y)
 
+        self.starting_x = x
+        self.starting_y = y
         self.grass_tiles = grass_tiles
         self.water_tiles = water_tiles
 
-        #Kinematics vectors (first value is x, second value is y)
+        # Kinematics vectors (first value is x, second value is y)
         self.position = vector(x, y)
         self.velocity = vector(0, 0)
         self.acceleration = vector(0, 0)
 
-        #Kinematic constants
+        # Kinematic constants
         self.HORIZONTAL_ACCELERATION = 2
         self.HORIZONTAL_FRICTION = 0.15
-        self.VERTICAL_ACCELERATION = 0.5 #Gravity
+        self.VERTICAL_ACCELERATION = 0.5  # Gravity
+        self.VERTICAL_JUMP_SPEED = 15  # Determines how high we can jump
 
     def update(self):
-        #Set the acceleration vector to (0,0) so there is initially no acceleration
-        #If there are no key presses then horizontal acceleration should be 0, gravity will always be present
+        self.move()
+        self.check_collisions()
+
+    def move(self):
+        # Set the acceleration vector to (0,0) so there is initially no acceleration
+        # If there are no key presses then horizontal acceleration should be 0, gravity will always be present
         self.acceleration = vector(0, self.VERTICAL_ACCELERATION)
 
-        #If the user is pressing a left or right key, set the x-component of the acceleration vector to a non-zero value
+        # If the user is pressing a left or right key, set the x-component of the acceleration vector to a non-zero value
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
             self.acceleration.x = -1 * self.HORIZONTAL_ACCELERATION
         if keys[pygame.K_RIGHT]:
             self.acceleration.x = self.HORIZONTAL_ACCELERATION
 
-        #Calculate new kinematics values
+        # Calculate new kinematics values
         self.acceleration.x -= self.velocity.x * self.HORIZONTAL_FRICTION
         self.velocity += self.acceleration
-        self.position += self.velocity + .5*self.acceleration
+        self.position += self.velocity + .5 * self.acceleration
 
-        #Update rect based on kinematics calculations
-        self.rect.bottomleft  =  self.position
+        # Update rect based on kinematics calculations and add wrap around motion
+        if self.position.x < 0:
+            self.position.x = WINDOW_WIDTH
+        elif self.position.x > WINDOW_WIDTH:
+            self.position.x = 0
+        self.rect.bottomleft = self.position
 
-        #Check for collisions with grass tiles
+    def check_collisions(self):
+        # Check for collisions with grass tiles
         collided_platforms = pygame.sprite.spritecollide(self, self.grass_tiles, False)
         if collided_platforms:
-            self.position.y = collided_platforms[0].rect.top + 1
-            self.velocity.y = 0
+            # Only move to the platform if the player is falling down
+            if self.velocity.y > 0:
+                self.position.y = collided_platforms[0].rect.top + 1
+                self.velocity.y = 0
 
-        #Check for collisions with water tiles
+        # Check for collisions with water tiles
         if pygame.sprite.spritecollide(self, self.water_tiles, False):
-            print("You can't swim!")
+            self.position = (self.starting_x, self.starting_y)
+            self.velocity = vector(0, 0)
+
+    def jump(self):
+        # Only jump if on a grass tile
+        if pygame.sprite.spritecollide(self, self.grass_tiles, False):
+            self.velocity.y = -1 * self.VERTICAL_JUMP_SPEED
+
 
 # Create sprite groups
 main_tile_group = pygame.sprite.Group()
@@ -135,7 +157,7 @@ for i in range(len(tile_map)):
         elif tile_map[i][j] == 3:
             Tile(j * 32, i * 32, 3, main_tile_group, water_tile_group)
         elif tile_map[i][j] == 4:
-            player = Player(j*32, i*32 + 32, grass_tile_group, water_tile_group)
+            player = Player(j * 32, i * 32 + 32, grass_tile_group, water_tile_group)
             player_group.add(player)
 
 # Load in a background image
@@ -150,6 +172,9 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                player.jump()
 
     # Blit the background
     display_surface.blit(background_image, background_rect)
@@ -157,7 +182,7 @@ while running:
     # Draw tiles
     main_tile_group.draw(display_surface)
 
-    #Update and draw sprites
+    # Update and draw sprites
     player_group.update()
     player_group.draw(display_surface)
 
