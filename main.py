@@ -28,6 +28,7 @@ class Tile(pygame.sprite.Sprite):
             self.image = pygame.image.load("dirt.png")
         elif tile_type == 2:
             self.image = pygame.image.load("grass.png")
+            self.mask = pygame.mask.from_surface(self.image)
             sub_group.add(self)
         elif tile_type == 3:
             self.image = pygame.image.load("water.png")
@@ -63,6 +64,10 @@ class Player(pygame.sprite.Sprite):
         self.move_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Run (7).png"), (64,64)))
         self.move_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Run (8).png"), (64,64)))
 
+        #Moving Left
+        for sprite in self.move_right_sprites:
+            self.move_left_sprites.append(pygame.transform.flip(sprite, True, False))
+
         #Idle Right
         self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (1).png"), (64, 64)))
         self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (2).png"), (64, 64)))
@@ -72,6 +77,10 @@ class Player(pygame.sprite.Sprite):
         self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (6).png"), (64, 64)))
         self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (7).png"), (64, 64)))
         self.idle_right_sprites.append(pygame.transform.scale(pygame.image.load("boy/Idle (8).png"), (64, 64)))
+
+        #Idle Left
+        for sprite in self.idle_right_sprites:
+            self.idle_left_sprites.append(pygame.transform.flip(sprite, True, False))
 
         self.current_sprite = 0
         self.image = self.move_right_sprites[self.current_sprite]
@@ -95,6 +104,9 @@ class Player(pygame.sprite.Sprite):
         self.VERTICAL_JUMP_SPEED = 15  # Determines how high we can jump
 
     def update(self):
+        #Create a mark
+        self.mask = pygame.mask.from_surface(self.image)
+
         self.move()
         self.check_collisions()
 
@@ -107,11 +119,15 @@ class Player(pygame.sprite.Sprite):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
             self.acceleration.x = -1 * self.HORIZONTAL_ACCELERATION
+            self.animate(self.move_left_sprites, .2)
         elif keys[pygame.K_RIGHT]:
             self.acceleration.x = self.HORIZONTAL_ACCELERATION
             self.animate(self.move_right_sprites, .2)
         else:
-            self.animate(self.idle_right_sprites, .2)
+            if self.velocity.x >= 0:
+                self.animate(self.idle_right_sprites, .2)
+            else:
+                self.animate(self.idle_left_sprites, .2)
 
         # Calculate new kinematics values
         self.acceleration.x -= self.velocity.x * self.HORIZONTAL_FRICTION
@@ -127,11 +143,11 @@ class Player(pygame.sprite.Sprite):
 
     def check_collisions(self):
         # Check for collisions with grass tiles
-        collided_platforms = pygame.sprite.spritecollide(self, self.grass_tiles, False)
+        collided_platforms = pygame.sprite.spritecollide(self, self.grass_tiles, False, pygame.sprite.collide_mask)
         if collided_platforms:
             # Only move to the platform if the player is falling down
             if self.velocity.y > 0:
-                self.position.y = collided_platforms[0].rect.top + 1
+                self.position.y = collided_platforms[0].rect.top + 10
                 self.velocity.y = 0
 
         # Check for collisions with water tiles
